@@ -51,7 +51,7 @@ export class DockerTestStack extends cdk.Stack {
       keyName: 'teja-exporo-techdevops',
     });
 
-    const userDataScript = readFileSync('./lib/user-data.sh', 'utf8');
+    const userDataScript = readFileSync('././user-data.sh', 'utf8');
     // 👇 add the User Data script to the Instance
     ec2Instance.addUserData(userDataScript);
   }
