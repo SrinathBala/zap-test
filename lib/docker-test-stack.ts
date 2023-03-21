@@ -45,6 +45,9 @@ export class DockerTestStack extends cdk.Stack {
         ec2.InstanceClass.T2,
         ec2.InstanceSize.MICRO,
       ),
+      vpcSubnets: {
+        subnetType: ec2.SubnetType.PUBLIC,
+      },
       machineImage: new ec2.AmazonLinuxImage({
         generation: ec2.AmazonLinuxGeneration.AMAZON_LINUX_2,
       }),
