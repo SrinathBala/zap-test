@@ -1,6 +1,7 @@
 import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
+import {readFileSync} from 'fs';
 
 export class DockerTestStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -56,17 +57,22 @@ export class DockerTestStack extends cdk.Stack {
         generation: ec2.AmazonLinuxGeneration.AMAZON_LINUX_2,
       }),
       keyName: 'devops',
-      userData:  ec2.UserData.custom(`
-      #!/bin/bash
-      sudo -i
-      yum update -y
-      nyum install python3-pip git -y
-      git clone ${githubUrl}
-      pip3 install flask
-      cd zap-flask
-      python3 app.py
-    `)
+//       userData:  ec2.UserData.custom(`
+//       #!/bin/bash
+//       sudo -i
+//       yum update -y
+//       nyum install python3-pip git -y
+//       git clone ${githubUrl}
+//       pip3 install flask
+//       cd zap-flask
+//       python3 app.py
+//     `)
     });
+    
+    // load user data script
+    const userDataScript = readFileSync('./lib/user-data.sh', 'utf8');
 
+    // add user data to the EC2 instance
+    ec2Instance.addUserData(userDataScript);
   }
 }
