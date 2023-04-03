@@ -6,16 +6,12 @@ export class DockerTestStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
-    const vpc = new ec2.Vpc(this, 'my-cdk-vpc', {
-      cidr: '10.0.0.0/16',
-      natGateways: 0,
-      subnetConfiguration: [
-        {name: 'public', cidrMask: 24, subnetType: ec2.SubnetType.PUBLIC},
-      ],
+    const defaultVpc = ec2.Vpc.fromLookup(this, 'DefaultVpc', {
+      isDefault: true
     });
 
     const webserverSG = new ec2.SecurityGroup(this, 'webserver-sg', {
-      vpc: vpc,
+      vpc: defaultVpc,
       allowAllOutbound: true,
     });
 
@@ -37,11 +33,13 @@ export class DockerTestStack extends cdk.Stack {
       'allow HTTPS traffic from anywhere',
     );
 
+    webserverSG.addEgressRule(ec2.Peer.ipv4('0.0.0.0/0'), ec2.Port.tcp(-1));
+
     const githubUrl = "https://github.com/SrinathBala/zap-flask.git";
 
     const ec2Instance = new ec2.Instance(this, 'ec2-instance', {
       securityGroup: webserverSG,
-      vpc: vpc,
+      vpc: defaultVpc,
       instanceType: ec2.InstanceType.of(
         ec2.InstanceClass.T2,
         ec2.InstanceSize.MICRO,
