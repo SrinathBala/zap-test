@@ -56,7 +56,16 @@ export class DockerTestStack extends cdk.Stack {
         generation: ec2.AmazonLinuxGeneration.AMAZON_LINUX_2,
       }),
       keyName: 'devops',
-      userData:  ec2.UserData.custom("#!/bin/bash\nsudo -i\nyum update -y\nyum install python3-pip git -y\nsudo git clone git clone ${githubUrl}\nsudo pip3 install flask\ncd zap-flask\npython3 app.py\n")
+      userData:  ec2.UserData.custom(`
+      #!/bin/bash
+      sudo -i
+      yum update -y
+      nyum install python3-pip git -y
+      git clone ${githubUrl}
+      pip3 install flask
+      cd zap-flask
+      python3 app.py
+    `)
     });
 
   }
