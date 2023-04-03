@@ -1,5 +1,7 @@
-sudo yum install python3-pip git docker -y
-sudo git clone "https://github.com/SrinathBala/docker-flask.git"
-cd /docker-test
-sudo docker build -t my-image .
-sudo docker run -p 80:80 my-image
+#!/bin/bash
+sudo yum update -y
+sudo yum install python3-pip git mysql -y
+sudo git clone "https://github.com/SrinathBala/flask.git"
+sudo pip3 install flask
+cd /flask
+sudo python3 app.py
