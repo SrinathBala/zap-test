@@ -1,48 +1,45 @@
 import * as cdk from 'aws-cdk-lib';
-import { Construct } from 'constructs';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
-import {readFileSync} from 'fs';
+import * as iam from 'aws-cdk-lib/aws-iam';
+import { Construct } from 'constructs';
 
 export class DockerTestStack extends cdk.Stack {
-  constructor(scope: Construct, id: string, props?: cdk.StackProps) {
-    super(scope, id, props);
+     constructor(scope: Construct, id: string, props?: cdk.StackProps) {
+       super(scope, id, props);
 
-    const vpc = ec2.Vpc.fromLookup(this, 'my-default-vpc', {
-      isDefault: true,
+    const vpc = new ec2.Vpc(this, 'MyVPC', {
+      cidr: '10.0.0.0/16',
+      maxAzs: 2,
+      subnetConfiguration: [
+        {
+          cidrMask: 24,
+          name: 'public',
+          subnetType: ec2.SubnetType.PUBLIC,
+        },
+      ],
     });
 
-    // 👇 create a security group for the EC2 instance
-    const webserverSG = new ec2.SecurityGroup(this, 'webserver-sg', {
+    const instance = new ec2.Instance(this, 'MyInstance', {
       vpc,
-    });
-
-    webserverSG.addIngressRule(
-      ec2.Peer.anyIpv4(),
-      ec2.Port.tcp(80),
-      'allow HTTP traffic from anywhere',
-    );
-
-    // 👇 create the EC2 instance
-    const ec2Instance = new ec2.Instance(this, 'ec2-instance', {
-      vpc,
-      vpcSubnets: {
-        subnetType: ec2.SubnetType.PUBLIC,
-      },
-      securityGroup: webserverSG,
-      instanceType: ec2.InstanceType.of(
-        ec2.InstanceClass.BURSTABLE2,
-        ec2.InstanceSize.MICRO,
-      ),
-      machineImage: new ec2.AmazonLinuxImage({
+      instanceType: ec2.InstanceType.of(ec2.InstanceClass.T2, ec2.InstanceSize.MICRO),
+      machineImage: ec2.MachineImage.latestAmazonLinux({
         generation: ec2.AmazonLinuxGeneration.AMAZON_LINUX_2,
       }),
+      keyName: 'devops1'
     });
 
-    // 👇 load user data script
-    const userDataScript = readFileSync('./lib/user-data.sh', 'utf8');
+    instance.addUserData(`
+      sudo -i
+      yum update -y
+      yum install python3-pip git mysql -y
+      git clone "https://github.com/SrinathBala/zap-flask.git"
+      pip3 install flask
+      cd zap-flask/
+      python3 app.py
+    `);
 
-    // 👇 add user data to the EC2 instance
-    ec2Instance.addUserData(userDataScript);
-
+    // allow inbound HTTP traffic
+    const httpPort = ec2.Port.tcp(80);
+    instance.connections.allowFromAnyIpv4(httpPort, 'allow HTTP access');
   }
 }
