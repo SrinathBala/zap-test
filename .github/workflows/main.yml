@@ -1,9 +1,55 @@
 name: CI + CD shared-services-infrastructure
 on:
-  workflow_dispatch:
+  push:
+#      environment:
+#        description: 'Choose the Env'
+#        required: true
+#        default: ''
+#        type: choice
+#        options:
+#        - dev
+#        - stage
+#        - prod
+#      stack:
+#        description: 'Choose the Stack'
+#        required: true
+#        default: ''
+#        type: choice
+#        options:
+#        - SharedServiceRole
+#        - PasswordPolicy
+#        - GitHubOIDC
+#        - CloudCustodianRole
+#        - Route53Role
+#        - FivetranRole
 
 jobs:
-  aws_cdk:
+  Checkov:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Install Checkov
+        uses: bridgecrewio/checkov-action@master
+
+      - name: Checkov Scan
+        run: checkov -d ${{ github.event.inputs.stack }} --skip-check CKV_AWS_41 --skip-check CKV_AWS_42
+
+  SonarCloud:
+    name: SonarCloud
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0  
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+  DeployStack:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
@@ -23,3 +69,20 @@ jobs:
         run: yarn cdk synth
       - name: Deploy stack
         run: yarn cdk deploy --all --require-approval never
+#owasp ZAP
+  zap_scan:
+    runs-on: ubuntu-latest
+    needs: DeployStack
+    name: Scan the webapplication
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: ZAP Scan
+        uses: zaproxy/action-full-scan@v0.4.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          docker_name: 'owasp/zap2docker-stable'
+          target: 'http://demo.devops.exporo.com/'
+          rules_file_name: '.zap/rules.tsv'
+          cmd_options: '-a'
